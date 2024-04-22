@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ "$1" == "" ] ; then
+  echo Como usar:
+  echo
+  echo -e "\033[1;32m  $0 scripts_permission \033[0m  - Atualiza as permissões dos arquivos dentro de scripts"
+  exit 1
+fi
+
+if [ "$1" == "scripts_permission" ] ; then
+    sudo chmod -R 777 src/scripts/
+fi
