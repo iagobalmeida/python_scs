@@ -1,0 +1,4 @@
+python-crontab==3.0.0
+pytest
+croniter
+cron_descriptor
