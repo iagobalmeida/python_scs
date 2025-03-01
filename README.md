@@ -91,10 +91,18 @@
 
     scripts = scripts_manager.get_scripts()
 
-    job = scripts_manager.set_job(
+    job = scripts_manager.set_script_job(
         script_name=scripts[0], # 'script_teste.py'
         schedule=['* * * * *'],
         comment='Agendamento teste',
+        enable=True
+    )
+
+    # Você também pode criar um agendamento com comando customizado
+    job = scripts_manager.set_job(
+        command='echo "Teste"',
+        schedule=['* * * * *'],
+        comment='Agendamento customizado',
         enable=True
     )
     ```
@@ -111,6 +119,9 @@
     for job in jobs:
         print(f'{job.comment} - {job.script_name} - {job.is_runing()}')
         # -> Agendamento teste - script_teste.py - False
+
+    # Também é possível acessar via nome do script
+    job_script_test = scripts_manager.get_job_by_script_name('script_test.py')
     ```
 
 5. *Habilite*, *Desabilite*, *Execute* e *Exclua* um agendamento:

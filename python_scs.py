@@ -5,14 +5,15 @@ import subprocess
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from typing import List
+from uuid import uuid4
 
 import psutil
 import streamlit as st
-from crontab import CronTab
+from crontab import CronItem, CronTab
 
 
 class PythonCronItem:
-    def __init__(self, cron_item):
+    def __init__(self, cron_item: CronItem):
         self._cron_item = cron_item
 
     def __getattr__(self, name):
@@ -23,7 +24,7 @@ class PythonCronItem:
     @property
     def script_name(self):
         match = re.search(r'\.([a-zA-Z_][a-zA-Z0-9_]*)\s*>>', self.command)
-        return match.group(1) if match else self.command
+        return match.group(1) if match else None
 
     def is_running(self):
         for proc in psutil.process_iter(attrs=['cmdline']):
@@ -65,16 +66,41 @@ class PythonScriptsCronManager:
         self.crontab.read()
         return [PythonCronItem(job) for job in self.crontab]
 
-    def set_job(self, script_name: str, schedule: List[str], comment: str = None, enable: bool = True) -> PythonCronItem:
+    def get_job_by_script_name(self, script_name: str) -> PythonCronItem:
+        '''Retorna um agendamento com base no nome do script'''
+        for job in self.get_jobs():
+            if job.script_name == script_name:
+                return job
+        raise ValueError(f"No job found for script name: {script_name}")
+
+    def get_job_by_command(self, command: str) -> PythonCronItem:
+        '''Retorna um agendamento com base no comando'''
+        for job in self.get_jobs():
+            if job.command == command:
+                return job
+        raise ValueError(f"No job found for command: {command}")
+
+    def set_job(self, command: str, schedule: List[str], comment: str = None, enable: bool = True) -> PythonCronItem:
         '''Cria um novo agendamento'''
-        command = f'cd {self.app_path} && python3 -m {self.scripts_folder}.{script_name}'
-        log_file = f'{self.logs_folder}/{script_name}.txt'
-        job = PythonCronItem(self.crontab.new(command=f'{command} >> {log_file} 2>> {log_file}'))
-        job.set_comment(comment or script_name)
+        cron_item = self.crontab.new(command=command)
+        job = PythonCronItem(cron_item)
+        if comment:
+            job.set_comment(comment)
         job.setall(' '.join(schedule))
         job.enable(enabled=enable)
         self.crontab.write()
         return job
+
+    def set_script_job(self, script_name: str, schedule: List[str], comment: str = None, enable: bool = True) -> PythonCronItem:
+        '''Cria um novo agendamento'''
+        command = f'cd {self.app_path} && python3 -m {self.scripts_folder}.{script_name}'
+        log_file = f'{self.logs_folder}/{script_name}_{uuid4()}.txt'
+        return self.set_job(
+            command=f'{command} >> {log_file} 2>> {log_file}',
+            schedule=schedule,
+            comment=comment,
+            enable=enable
+        )
 
     def get_scripts(self) -> List[str]:
         '''Retorna todos os scripts disponíveis na pasta de scripts'''
@@ -95,18 +121,25 @@ class PythonScriptsCronManager:
 
     def remove_job(self, job: PythonCronItem) -> None:
         '''Remove um agendamento'''
-        self.crontab.remove(job)
+        self.crontab.remove(job._cron_item)
         self.crontab.write()
+
+    def get_job_log_file_path(self, job: PythonCronItem):
+        if not '>>' in job.command:
+            return None
+        return f'{self.app_path}/{job.command.split(">>")[-1].strip()}'
 
     def get_job_logs(self, job: PythonCronItem, lines: int = 20) -> List[str]:
         '''Retorna as últimas `lines` linhas do log de um agendamento'''
-        log_file_path = f'{self.app_path}/{job.command.split(">>")[-1].strip()}'
+        log_file_path = self.get_job_log_file_path(job)
+        if not log_file_path:
+            return []
         try:
-            log_file = open(log_file_path, 'r+')
-            return log_file.readlines()[-lines:]
+            with open(log_file_path, 'r+') as log_file:
+                return log_file.readlines()[-lines:]
         except FileNotFoundError:
-            log_file = open(log_file_path, 'w+')
-            return log_file.readlines()[-lines:]
+            with open(log_file_path, 'w+') as log_file:
+                return log_file.readlines()[-lines:]
 
     def streamlit_pannel(self, config: PannelConfig = PannelConfig()):
         '''Gera um painel em Streamlit para gerenciar agendamentos'''
@@ -125,7 +158,7 @@ class PythonScriptsCronManager:
 
         st.divider()
 
-        def st_dict_card(values: dict, col_sizes=[1, 2, 8]):
+        def st_dict_card(values: dict, col_sizes=[1, 10]):
             '''Desenha um container com borda para exibir informações formatadas'''
             with st.container(border=True):
                 for key, value in values.items():
@@ -138,12 +171,16 @@ class PythonScriptsCronManager:
             '''Caixa de diálogo para confirmação de ações'''
             st.write(descricao)
             if acao == 'adicionar':
-                st_dict_card({
-                    'Script': f"`{kwargs['script_selecionado']}.py`",
+                dict = {
                     'Habilitado': '✔ Sim' if kwargs['habilitado'] else '✖ Não',
                     'Comentário': kwargs['comentario'] or '_Não preenchido_',
                     'Agendamento': f"`{' '.join(kwargs['agendamento'])}`"
-                }, col_sizes=[1, 2])
+                }
+                if kwargs.get('comando_customizado', False):
+                    dict['Comando Customizado'] = f"`{kwargs['comando_customizado']}`"
+                else:
+                    dict['Script'] = kwargs['script_selecionado']
+                st_dict_card(dict, col_sizes=[1, 2])
 
             if acao == 'executar':
                 sincrono = st.toggle('Execução síncrona')
@@ -156,12 +193,28 @@ class PythonScriptsCronManager:
                 elif acao == 'remover':
                     self.remove_job(kwargs.get('job'))
                 elif acao == 'adicionar':
-                    self.set_job(kwargs['script_selecionado'], kwargs['agendamento'].split(), kwargs['comentario'])
+                    if kwargs['comando_customizado']:
+                        self.set_job(
+                            command=kwargs['comando_customizado'],
+                            schedule=kwargs['agendamento'].split(),
+                            comment=kwargs['comentario'],
+                            enable=kwargs['habilitado']
+                        )
+                    else:
+                        self.set_script_job(
+                            script_name=kwargs['script_selecionado'],
+                            schedule=kwargs['agendamento'].split(),
+                            comment=kwargs['comentario'],
+                            enable=kwargs['habilitado']
+                        )
                 st.rerun()
 
         with st.expander('Adicionar novo agendamento', icon='📜'):
-            script_selecionado = st.selectbox('Selecione um script', options=scripts)
+            script_selecionado = st.selectbox('Selecione um script', options=[*scripts, 'Comando customizado'])
             script_selecionado = script_selecionado.split('.')[0]
+            comando_customizado = None
+            if script_selecionado == 'Comando customizado':
+                comando_customizado = st.text_input('Comando')
             agendamento = st.text_input('Agendamento', value='* * * * *')
             comentario = st.text_input('Comentário', value='')
             habilitado = st.toggle('Habilitado', value=True)
@@ -170,31 +223,34 @@ class PythonScriptsCronManager:
                     'adicionar',
                     'Deseja agendar o script?',
                     script_selecionado=script_selecionado,
+                    comando_customizado=comando_customizado,
                     agendamento=agendamento,
                     comentario=comentario,
                     habilitado=habilitado
                 )
 
-        for job in jobs:
+        for job_index, job in enumerate(jobs):
             proxima_execucao = job.schedule().get_next().strftime("%d/%m/%Y às %H:%M:%S")
             expander_icon = "✔" if job.enabled else "✖"
             with st.expander(f'**{job.comment or job.script_name}** {" - " + proxima_execucao if job.enabled else ""}', icon=expander_icon, expanded=True):
                 st.subheader(job.comment or job.script_name)
                 if job.is_running():
-                    st.success('Este serviço está rodando')
+                    st.success('Este comando está sendo executado')
                 col1, col2, col3, space = st.columns([1, 1, 1, 8])
-                if col1.button('Executar', icon='⚙'):
+                if col1.button('Executar', icon='⚙', key=f'executar_{job_index}'):
                     st_dialog_confirmar_acao('executar', 'Deseja executar de forma síncrona esse agendamento?', job=job)
-                if col2.button('Habilitar' if not job.enabled else 'Desabilitar', icon='✔' if not job.enabled else '✖'):
+                if col2.button('Habilitar' if not job.enabled else 'Desabilitar', icon='✔' if not job.enabled else '✖', key=f'habilitar_{job_index}'):
                     st_dialog_confirmar_acao('toggle', f'Deseja {"habilitar" if not job.enabled else "desabilitar"} esse agendamento?', job=job)
-                if col3.button('Remover', icon='🗑'):
+                if col3.button('Remover', icon='🗑', key=f'remover_{job_index}'):
                     st_dialog_confirmar_acao('remover', 'Deseja remover esse agendamento?', job=job)
                 st_dict_card({
                     'Script': f'`{job.script_name}.py`',
                     'Habilitado': '✔ Sim' if job.enabled else '✖ Não',
                     'Comentário': job.comment or '_Não preenchido_',
                     'Agendamento': f'`{" ".join(job.schedule().expressions)}`',
+                    'Arquivo de Logs': f'`{self.get_job_log_file_path(job)}.txt`',
                     'Próxima execução': proxima_execucao,
+                    'Comando': f'`{job.command}`'
                 })
                 st.subheader('Logs')
                 logs = self.get_job_logs(job)
