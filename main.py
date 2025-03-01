@@ -1,15 +1,18 @@
-from logging import getLogger
+import os
 
-from modules.db import DBInterface
-from modules.python_crontab import PythonCrontrabInterface
+from python_scs import PannelConfig, PythonScriptsCronManager
 
-log = getLogger(__name__)
+scripts_manager = PythonScriptsCronManager(
+    config=PythonScriptsCronManager.Config(
+        app_path=os.path.abspath('.'),  # Raiz onde scripts_folder estará
+        scripts_folder='scripts',       # Diretório com os códigos
+        logs_folder='scripts/logs'      # Diretório de logs
+    ),
+    user=True
+)
 
-
-def main():
-    crontab_interface = PythonCrontrabInterface()
-    crontab_interface.get_jobs(log_details=True)
-
-
-if __name__ == '__main__':
-    main()
+scripts_manager.streamlit_pannel(config=PannelConfig(
+    layout='wide',
+    title='Crontab Interface',
+    subheader='Interface para gerenciamento de agendamentos'
+))

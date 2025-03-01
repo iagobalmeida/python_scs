@@ -1,26 +1,135 @@
-# Python CronTab Manager
+# Python Scripts Cron Scheduler
 
-Módulo para gestão de scripts python executados com cron a partir de registros de um banco de dados.
+*API* com *Painel em Streamlit* para gestão do agendamento de scripts em Python através de CronJobs.
 
-## Dependências
-```
-python-crontab==3.0.0
-pytest
-croniter
-cron_descriptor
-```
+## Instalação
+1. Você pode instalar manualmente as bibliotecas `python-crontab` e `psutil` em sua aplicação, ou usar o arquivo `requirements.txt`.
+    - Para usar o painel é necessário também instalar o `streamlit`.
+        ```bash
+        pip install python-crontab psutil streamlit
+        ```
+2. Copie o arquivo `python_scs.py` para sua aplicação.
 
-## Introdução
+## Usando o painel
+1. Caso você não tenha uma estrutura de scripts na sua aplicação, crie um diretório `/scripts` contendo um diretório `/logs` dentro. Adicione um código Python na pasta `/scripts`.
+    ```
+    ↳ sua_aplicação
+        ↳ scripts
+            ↳ logs
+            scrip_teste.py
+            __init__.py
+        main.py
+    ```
+2. Para usar o painel, adicione o `streamlit` as suas dependências:
+    ```bash
+    pip install streamlit
+    ```
+3. Instancie o gerenciador e chame a função `streamlit_pannel()`:
+    ```python
+    # main.py
 
-Esse projeto possuí um arquivo chamado `python_crontab.py`, referente ao módulo para gestão do `cron` em si.
+    import os
 
-Existe também um arquivo chamado `db.py` que é uma abstração de um banco de dados qualquer, que possuí uma tabela chamada `crontabs` com 3 colunas:
-- *marker* `str`: Um marcador para agregar scripts com um mesmo escopo.
-- *comment* `str`: O nome do arquivo contido em `src/scripts/` que será executado.
-- *schedule* `str`: A configuração de agendamento do cron, seguindo o padrão `* * * * *`.
+    from python_scs import PannelConfig, PythonScriptsCronManager
 
-Em `src/tests/test.py` existe um teste que busca os dados da abstração de banco e atualiza o arquivo de configuração do cron da máquina (Antes de configurar os scripts cadastrados no banco, o arquivo de configuração do Cron é limpo).
+    
+    scripts_manager = PythonScriptsCronManager(
+        config=PythonScriptsCronManager.Config(
+            app_path=os.path.abspath('.'),  # Raiz onde scripts_folder estará
+            scripts_folder='scripts',       # Diretório com os códigos
+            logs_folder='scripts/logs'      # Diretório de logs
+        ),
+        user=True
+    )
 
-É importante estudar o método `src/modules/db.py::DBInterface.get_crontabs()` pois nele existe uma função interna responsável por transformar os registros do banco de dados em uma entidade `CronJob` que é utilizada para garantir uma boa comunicação com o módulo.
+    scripts_manager.streamlit_pannel(config=PannelConfig(
+        layout='wide',
+        title='Crontab Interface',
+        subheader='Interface para gerenciamento de agendamentos'
+    ))
+    ```
+4. Execute a aplicação com o `Streamlit` e acesse o endereço exibido no console:
+    ```
+    streamlit run main.py
+    ```
 
-Esse método consome o método de classe `PythonCrontrabInterface.cron_job()` para gerar uma entidade `CronJob`, use esse método na sua aplicação para gerar uma entidade válida para as funções `get_jobs`, `set_job` e `set_jobs`.
+## Usando a API
+
+1. Importe e instancie uma classe `PythonScripsCronScheduler`:
+    ```python
+    # main.py
+
+    import os
+
+    from python_scs import PythonScriptsCronManager
+
+    scripts_manager = PythonScriptsCronManager(
+        config=PythonScriptsCronManager.Config(
+            app_path=os.path.abspath('.'),  # Raiz onde scripts_folder estará
+            scripts_folder='scripts',       # Diretório com os códigos
+            logs_folder='scripts/logs'      # Diretório de logs
+        ),
+        user=True
+    )
+    ```
+    *Verifique a [documentação da biblioteca crontab](https://pypi.org/project/python-crontab/#how-to-use-the-module) para entender como parâmetro `user` funciona.*
+
+2. Liste os scripts disponíves para configuração:
+    ```python
+    ...
+
+    scripts_manager = PythonScriptsCronManager(...)
+    
+    scripts = scripts_manager.get_scripts()
+
+    print(scripts) # ['script_teste.py']
+    ```
+
+3. Configure um agendamento:
+    ```python
+    ...
+
+    scripts_manager = PythonScriptsCronManager(...)
+
+    scripts = scripts_manager.get_scripts()
+
+    job = scripts_manager.set_job(
+        script_name=scripts[0], # 'script_teste.py'
+        schedule=['* * * * *'],
+        comment='Agendamento teste',
+        enable=True
+    )
+    ```
+
+4. Liste os agendamentos configurados:
+    ```python
+    ...
+
+    scripts_manager = PythonScriptsCronManager(...)
+
+    jobs = scripts_manager.get_jobs()
+    for job in jobs:
+        print(f'{job.comment} - {job.script_name} - {job.is_runing()}')
+        # Agendamento teste - script_teste.py - false
+    ```
+
+5. Habilite/desabilite, Execute e Exclua um agendamento:
+    ```python
+    ...
+
+    scripts_manager = PythonScriptsCronManager(...)
+
+    jobs = scripts_manager.get_jobs()
+    job = jobs[0]
+
+    job.enable_job()     # job.enabled = True
+    job.disable_job()    # job.enabled = False
+
+    job.toggle_job()     # job.enabled = True
+    job.toggle_job()     # job.enabled = False
+
+    scripts_manager.execute(job)     # Executa de forma síncrona, mesmo se job.enabled = False
+
+    scripts_manager.remove_job(job)  # Remove o agendamento
+
+    ```
