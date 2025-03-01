@@ -115,8 +115,6 @@
 
 5. *Habilite*, *Desabilite*, *Execute* e *Exclua* um agendamento:
     ```python
-    ...
-
     scripts_manager = PythonScriptsCronManager(...)
 
     jobs = scripts_manager.get_jobs()

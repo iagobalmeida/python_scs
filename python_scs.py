@@ -1,6 +1,7 @@
 import datetime
 import os
 import re
+import subprocess
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from typing import List
@@ -85,8 +86,11 @@ class PythonScriptsCronManager:
         self.crontab.write()
         return job.enabled
 
-    def execute_job(self, job: PythonCronItem) -> str:
+    def execute_job(self, job: PythonCronItem, use_subprocess: bool = False) -> str:
         '''Executa um agendamento imediatamente'''
+        if use_subprocess:
+            subprocess.Popen(job.command, shell=True)
+            return 'ok'
         return job.run()
 
     def remove_job(self, job: PythonCronItem) -> None:
@@ -140,10 +144,13 @@ class PythonScriptsCronManager:
                     'Comentário': kwargs['comentario'] or '_Não preenchido_',
                     'Agendamento': f"`{' '.join(kwargs['agendamento'])}`"
                 }, col_sizes=[1, 2])
+
+            if acao == 'executar':
+                sincrono = st.toggle('Execução síncrona')
+
             if st.button('Confirmar ação'):
                 if acao == 'executar':
-                    with st.spinner('Executando...'):
-                        self.execute_job(kwargs.get('job'))
+                    self.execute_job(kwargs.get('job'), use_subprocess=not sincrono)
                 elif acao == 'toggle':
                     self.toggle_job(kwargs.get('job'))
                 elif acao == 'remover':
