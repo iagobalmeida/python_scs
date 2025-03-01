@@ -14,13 +14,15 @@
 
 ## Usando o painel
 1. Caso você não tenha uma estrutura de scripts na sua aplicação, crie um diretório `/scripts` contendo um diretório `/logs` dentro. Adicione um código Python na pasta `/scripts`.
-    ```
+    ```python
     ↳ sua_aplicação
         ↳ scripts
             ↳ logs
             scrip_teste.py
             __init__.py
-        main.py
+        python_scs.py           # Copie do repositório
+        streamlit_pannel.py     # Crie este arquivo
+        app.py                  # Sua aplicação
     ```
 2. Para usar o painel, adicione o `streamlit` as suas dependências:
     ```bash
@@ -28,7 +30,7 @@
     ```
 3. Instancie o gerenciador e chame a função `streamlit_pannel()`:
     ```python
-    # main.py
+    # streamlit_pannel.py
 
     import os
 
@@ -52,15 +54,13 @@
     ```
 4. Execute a aplicação com o `Streamlit` e acesse o endereço exibido no console:
     ```
-    streamlit run main.py
+    streamlit run streamlit_pannel.py
     ```
 
 ## Usando a API
 
 1. Importe e instancie uma classe `PythonScripsCronScheduler`:
     ```python
-    # main.py
-
     import os
 
     from python_scs import PythonScriptsCronManager
@@ -78,8 +78,6 @@
 
 2. Liste os scripts disponíves para configuração:
     ```python
-    ...
-
     scripts_manager = PythonScriptsCronManager(...)
 
     scripts = scripts_manager.get_scripts()
@@ -89,8 +87,6 @@
 
 3. Configure um agendamento:
     ```python
-    ...
-
     scripts_manager = PythonScriptsCronManager(...)
 
     scripts = scripts_manager.get_scripts()
@@ -102,20 +98,22 @@
         enable=True
     )
     ```
+    3.1 - Em outro terminal, confira se o agendamento foi conifugurado com:
+    ```bash
+    crontab -e
+    ```
 
 4. Liste os agendamentos configurados:
     ```python
-    ...
-
     scripts_manager = PythonScriptsCronManager(...)
 
     jobs = scripts_manager.get_jobs()
     for job in jobs:
         print(f'{job.comment} - {job.script_name} - {job.is_runing()}')
-        # Agendamento teste - script_teste.py - false
+        # -> Agendamento teste - script_teste.py - False
     ```
 
-5. Habilite/desabilite, Execute e Exclua um agendamento:
+5. *Habilite*, *Desabilite*, *Execute* e *Exclua* um agendamento:
     ```python
     ...
 
@@ -130,8 +128,9 @@
     job.toggle_job()     # job.enabled = True
     job.toggle_job()     # job.enabled = False
 
-    scripts_manager.execute(job)     # Executa de forma síncrona, mesmo se job.enabled = False
+    # Executa de forma síncrona, mesmo se job.enabled = False
+    scripts_manager.execute(job)
 
-    scripts_manager.remove_job(job)  # Remove o agendamento
-
+    # Remove o agendamento
+    scripts_manager.remove_job(job)
     ```
