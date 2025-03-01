@@ -129,6 +129,9 @@
     # Executa de forma síncrona, mesmo se job.enabled = False
     scripts_manager.execute(job)
 
+    # Cria um subprocesso com o comando `job.command`
+    scripts_manager.execute(job, use_subprocess=True)
+
     # Remove o agendamento
     scripts_manager.remove_job(job)
     ```
