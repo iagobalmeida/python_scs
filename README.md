@@ -8,7 +8,7 @@
 1. Você pode instalar manualmente as bibliotecas `python-crontab` e `psutil` em sua aplicação, ou usar o arquivo `requirements.txt`.
     - Para usar o painel é necessário também instalar o `streamlit`.
         ```bash
-        pip install python-crontab psutil streamlit
+        pip install python-crontab psutil
         ```
 2. Copie o arquivo `python_scs.py` para sua aplicação.
 
@@ -28,28 +28,27 @@
     ```bash
     pip install streamlit
     ```
-3. Instancie o gerenciador e chame a função `streamlit_pannel()`:
+3. Instancie o gerenciador e o Painel:
     ```python
     # streamlit_pannel.py
-
     import os
 
-    from python_scs import PannelConfig, PythonScriptsCronManager
+    from python_scs import PythonScriptsCronManager
+    from python_scs.streamlit import PannelConfig, StreamlitPannel
 
-    
     scripts_manager = PythonScriptsCronManager(
         config=PythonScriptsCronManager.Config(
-            app_path=os.path.abspath("."),  # Raiz onde scripts_folder estará
-            scripts_folder="scripts",       # Diretório com os códigos
-            logs_folder="scripts/logs"      # Diretório de logs
+            app_path=os.path.abspath('.'),  # Raiz onde scripts_folder estará
+            scripts_folder='scripts',       # Diretório com os códigos
+            logs_folder='scripts/logs'      # Diretório de logs
         ),
         user=True
     )
 
-    scripts_manager.streamlit_pannel(config=PannelConfig(
-        layout="wide",
-        title="Crontab Interface",
-        subheader="Interface para gerenciamento de agendamentos",
+    streamlit_pannel = StreamlitPannel(scripts_manager, config=PannelConfig(
+        layout='wide',
+        title='Crontab Interface',
+        subheader='Interface para gerenciamento de agendamentos',
         allow_upload_script=True,
         allow_create_job=True,
         allow_execute_job=True,
