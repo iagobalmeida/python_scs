@@ -39,17 +39,17 @@
     
     scripts_manager = PythonScriptsCronManager(
         config=PythonScriptsCronManager.Config(
-            app_path=os.path.abspath('.'),  # Raiz onde scripts_folder estará
-            scripts_folder='scripts',       # Diretório com os códigos
-            logs_folder='scripts/logs'      # Diretório de logs
+            app_path=os.path.abspath("."),  # Raiz onde scripts_folder estará
+            scripts_folder="scripts",       # Diretório com os códigos
+            logs_folder="scripts/logs"      # Diretório de logs
         ),
         user=True
     )
 
     scripts_manager.streamlit_pannel(config=PannelConfig(
-        layout='wide',
-        title='Crontab Interface',
-        subheader='Interface para gerenciamento de agendamentos',
+        layout="wide",
+        title="Crontab Interface",
+        subheader="Interface para gerenciamento de agendamentos",
         allow_upload_script=True,
         allow_create_job=True,
         allow_execute_job=True,
@@ -72,9 +72,9 @@
 
     scripts_manager = PythonScriptsCronManager(
         config=PythonScriptsCronManager.Config(
-            app_path=os.path.abspath('.'),  # Raiz onde scripts_folder estará
-            scripts_folder='scripts',       # Diretório com os códigos
-            logs_folder='scripts/logs'      # Diretório de logs
+            app_path=os.path.abspath("."),  # Raiz onde scripts_folder estará
+            scripts_folder="scripts",       # Diretório com os códigos
+            logs_folder="scripts/logs"      # Diretório de logs
         ),
         user=True
     )
@@ -87,7 +87,7 @@
 
     scripts = scripts_manager.get_scripts()
 
-    print(scripts) # ['script_teste.py']
+    print(scripts) # ["script_teste.py"]
     ```
 
 3. Configure um agendamento:
@@ -97,17 +97,18 @@
     scripts = scripts_manager.get_scripts()
 
     job = scripts_manager.set_script_job(
-        script_name=scripts[0], # 'script_teste.py'
-        schedule=['* * * * *'],
-        comment='Agendamento teste',
+        script_name=scripts[0], # "script_teste.py"
+        schedule=["* * * * *"],
+        comment="Agendamento teste",
         enable=True
     )
 
     # Você também pode criar um agendamento com comando customizado
     job = scripts_manager.set_job(
-        command='echo "Teste"',
-        schedule=['* * * * *'],
-        comment='Agendamento customizado',
+        command='echo "Teste"'',
+        schedule=["* * * * *"],
+        log_file_name="teste.txt",  # Necessário para armazenar a saída
+        comment="Agendamento customizado",
         enable=True
     )
     ```
@@ -122,12 +123,13 @@
 
     jobs = scripts_manager.get_jobs()
     for job in jobs:
-        print(f'{job.comment} - {job.script_name} - {job.is_runing()}')
+        print(f"{job.comment} - {job.script_name} - {job.is_runing()}")
         # -> Agendamento teste - script_teste.py - False
 
-    # Também é possível acessar via nome do script
+    # Busca um agendamento por filtros
     job_script_test = scripts_manager.get_job({
-        'script_name': 'script_test.py'
+        "script_name": "script_test.py",
+        "comment": "Agendamento teste"
     })
     ```
 
@@ -135,8 +137,10 @@
     ```python
     scripts_manager = PythonScriptsCronManager(...)
 
-    jobs = scripts_manager.get_jobs()
-    job = jobs[0]
+    job = scripts_manager.get_job({
+        "script_name": "script_test.py",
+        "comment": "Agendamento teste"
+    })
 
     job.enable_job()     # job.enabled = True
     job.disable_job()    # job.enabled = False
