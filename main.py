@@ -1,6 +1,7 @@
 import os
 
-from python_scs import PannelConfig, PythonScriptsCronManager
+from python_scs import PythonScriptsCronManager
+from python_scs.streamlit import PannelConfig, StreamlitPannel
 
 scripts_manager = PythonScriptsCronManager(
     config=PythonScriptsCronManager.Config(
@@ -11,7 +12,7 @@ scripts_manager = PythonScriptsCronManager(
     user=True
 )
 
-scripts_manager.streamlit_pannel(config=PannelConfig(
+streamlit_pannel = StreamlitPannel(scripts_manager, config=PannelConfig(
     layout='wide',
     title='Crontab Interface',
     subheader='Interface para gerenciamento de agendamentos',
