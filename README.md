@@ -1,6 +1,6 @@
 # Python Scripts Cron Scheduler
 
-#### *API* com *Painel em Streamlit* para gestão do agendamento de scripts em Python através de CronJobs.
+#### *Abstração* com *Painel em Streamlit* out-of-the-box para gestão do agendamento de scripts em Python através de CronJobs.
 
 ![Demo](./demo.png)
 
@@ -49,7 +49,12 @@
     scripts_manager.streamlit_pannel(config=PannelConfig(
         layout='wide',
         title='Crontab Interface',
-        subheader='Interface para gerenciamento de agendamentos'
+        subheader='Interface para gerenciamento de agendamentos',
+        allow_upload_script=True,
+        allow_create_job=True,
+        allow_execute_job=True,
+        allow_toggle_job=True,
+        allow_remove_job=True
     ))
     ```
 4. Execute a aplicação com o `Streamlit` e acesse o endereço exibido no console:
@@ -121,7 +126,9 @@
         # -> Agendamento teste - script_teste.py - False
 
     # Também é possível acessar via nome do script
-    job_script_test = scripts_manager.get_job_by_script_name('script_test.py')
+    job_script_test = scripts_manager.get_job({
+        'script_name': 'script_test.py'
+    })
     ```
 
 5. *Habilite*, *Desabilite*, *Execute* e *Exclua* um agendamento:

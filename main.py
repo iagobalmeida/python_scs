@@ -14,5 +14,10 @@ scripts_manager = PythonScriptsCronManager(
 scripts_manager.streamlit_pannel(config=PannelConfig(
     layout='wide',
     title='Crontab Interface',
-    subheader='Interface para gerenciamento de agendamentos'
+    subheader='Interface para gerenciamento de agendamentos',
+    allow_upload_script=True,
+    allow_create_job=True,
+    allow_execute_job=True,
+    allow_toggle_job=True,
+    allow_remove_job=True
 ))
