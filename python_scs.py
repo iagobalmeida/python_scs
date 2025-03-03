@@ -192,7 +192,7 @@ class PythonScriptsCronManager:
                 if kwargs.get('comando_customizado', False):
                     detail_dict['Comando Customizado'] = f"`{kwargs['comando_customizado']}`"
                 else:
-                    detail_dict['Script'] = kwargs['script_selecionado']
+                    detail_dict['Script'] = f"`{kwargs['script_selecionado']}.py`"
 
             if detail_dict:
                 st_dict_card(detail_dict, col_sizes=[1, 2])
@@ -231,37 +231,60 @@ class PythonScriptsCronManager:
 
         if config.allow_upload_script:
             with st.expander('Enviar novo script', icon='📜'):
-                input_script_arquivo = st.file_uploader('Selecione um arquivo', type=['.py'], accept_multiple_files=False)
-                input_script_nome = st.text_input('Nome do arquivo na máquina de produção', value=input_script_arquivo.name if input_script_arquivo else None)
-                script_arquivo = input_script_arquivo.read() if input_script_arquivo else None
-                if st.button('Enviar Script'):
-                    st_dialog_confirmar_acao(
-                        'adicionar_script',
-                        'Deseja adicionar esse script?',
-                        script_nome=input_script_nome,
-                        script_bytes=script_arquivo
-                    )
+                try:
+                    input_script_arquivo = st.file_uploader('Selecione um arquivo', type=['.py'], accept_multiple_files=False)
+                    input_script_nome = st.text_input('Nome do arquivo destino', value=input_script_arquivo.name if input_script_arquivo else None)
+                    script_arquivo = input_script_arquivo.read() if input_script_arquivo else None
+                    if st.button('Enviar Script'):
+                        if not input_script_arquivo:
+                            raise ValueError('É necessário selecionar um arquivo')
+                        if not input_script_nome:
+                            raise ValueError('É necessário informar um nome para o arquivo destino')
+                        if not script_arquivo:
+                            raise ValueError('O arquivo enviado é inválido')
+                        st_dialog_confirmar_acao(
+                            'adicionar_script',
+                            'Deseja adicionar esse script?',
+                            script_nome=input_script_nome,
+                            script_bytes=script_arquivo
+                        )
+                except ValueError as ex:
+                    st.toast(str(ex), icon='❌')
 
         if config.allow_create_job:
             with st.expander('Adicionar novo agendamento', icon='📅'):
-                script_selecionado = st.selectbox('Selecione um script', options=[*scripts, 'Comando customizado'])
-                script_selecionado = script_selecionado.split('.')[0]
-                comando_customizado = None
-                if script_selecionado == 'Comando customizado':
-                    comando_customizado = st.text_input('Comando')
-                agendamento = st.text_input('Agendamento', value='* * * * *')
-                comentario = st.text_input('Comentário', value='')
-                habilitado = st.toggle('Habilitado', value=True)
-                if st.button('Adicionar'):
-                    st_dialog_confirmar_acao(
-                        'adicionar_agendamento',
-                        'Deseja agendar o script?',
-                        script_selecionado=script_selecionado,
-                        comando_customizado=comando_customizado,
-                        agendamento=agendamento,
-                        comentario=comentario,
-                        habilitado=habilitado
-                    )
+                try:
+                    script_selecionado = st.selectbox('Selecione um script', options=[*scripts, 'Comando customizado'])
+                    script_selecionado = script_selecionado.split('.')[0]
+                    comando_customizado = None
+                    if script_selecionado == 'Comando customizado':
+                        comando_customizado = st.text_input('Comando')
+                    agendamento = st.text_input('Agendamento', value='* * * * *')
+                    st.markdown('[Verifique como funciona a formatação do agendamento](https://www.site24x7.com/pt/tools/crontab/weekdays-specific-time)')
+                    comentario = st.text_input('Comentário', value='')
+                    habilitado = st.toggle('Habilitado', value=True)
+                    if st.button('Adicionar'):
+                        if not agendamento:
+                            raise ValueError('É necessário informar um agendamento')
+                        if len(agendamento.split(' ')) != 5:
+                            raise ValueError('Formato do agendamento inválido: Deve ser composto de 5 partes')
+                        if bool(re.search(r"[^0-9/*, -]", agendamento)):
+                            raise ValueError('Formato do agendamento inválido: Deve ser composto apenas de / e números')
+                        if not comentario:
+                            raise ValueError('É necessário informar um comentário')
+                        if script_selecionado == 'Comando customizado' and not comando_customizado:
+                            raise ValueError('É necessário informar um comando customizado')
+                        st_dialog_confirmar_acao(
+                            'adicionar_agendamento',
+                            'Deseja agendar o script?',
+                            script_selecionado=script_selecionado,
+                            comando_customizado=comando_customizado,
+                            agendamento=agendamento,
+                            comentario=comentario,
+                            habilitado=habilitado
+                        )
+                except ValueError as ex:
+                    st.toast(str(ex), icon='❌')
 
         for job_index, job in enumerate(jobs):
             proxima_execucao = job.schedule().get_next().strftime("%d/%m/%Y às %H:%M:%S")
