@@ -1,0 +1,6 @@
+python-crontab
+croniter
+psutil
+
+[streamlit]
+streamlit

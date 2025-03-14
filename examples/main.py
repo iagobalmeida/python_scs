@@ -1,7 +1,7 @@
 import os
 
 from python_scs import PythonScriptsCronManager
-from python_scs.streamlit import PannelConfig, StreamlitPannel
+from python_scs.streamlit_ui import PannelConfig, StreamlitPannel
 
 scripts_manager = PythonScriptsCronManager(
     config=PythonScriptsCronManager.Config(

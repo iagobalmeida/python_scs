@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-scs"
+version = "0.1.0"
+description = "Agendador de Scripts Python usando Crontab com Painel Streamlit"
+readme = "README.md"
+authors = [{ name = "Iago Almeida", email = "seuemail@example.com" }]
+license = { file = "LICENSE" }
+dependencies = [
+    "python-crontab",
+    "croniter",
+    "psutil"
+]
+requires-python = ">=3.7"
+
+[project.optional-dependencies]
+streamlit = ["streamlit"]
+
+[project.urls]
+Homepage = "https://github.com/iagobalmeida/python_scs"
+Documentation = "https://github.com/iagobalmeida/python_scs/blob/main/README.md"
