@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: python-scs
-Version: 0.1.0
+Version: 1.0
 Summary: Agendador de Scripts Python usando Crontab com Painel Streamlit
 Author-email: Iago Almeida <seuemail@example.com>
 License: MIT License
@@ -44,31 +44,34 @@ Requires-Dist: streamlit; extra == "streamlit"
 
 ## 📌 Instalação
 
-Você pode instalar as bibliotecas necessárias manualmente ou utilizando um arquivo `requirements.txt`.
-
 ```bash
-pip install python-crontab psutil streamlit
+pip install python_scs
+```
+
+Caso vá utilizar o painel em Streamlit
+```bash
+pip install python_scs[streamlit]
 ```
 
 ## 🚀 Configuração
 
-1. Copie o arquivo `python_scs.py` para sua aplicação.
-2. Certifique-se de ter a seguinte estrutura de diretórios:
+Confira o [exemplo completo](https://github.com/iagobalmeida/python_scs/tree/master/examples).
+
+1. Certifique-se de ter a seguinte estrutura de diretórios:
 
 ```
-└── sua_aplicação/
-    ├── scripts/
-    │   ├── logs/
-    │   ├── script_teste.py
-    │   ├── __init__.py
-    ├── python_scs.py
-    ├── streamlit_pannel.py
-    ├── app.py
+├── scripts/
+│   ├── logs/
+│   ├── script_teste.py
+│   ├── __init__.py
+├── main.py
 ```
 
-3. Configure o painel no arquivo `streamlit_pannel.py`:
+2. Instancie o gerenciador de scripts e configure o painel:
 
 ```python
+# main.py
+
 import os
 from python_scs import PythonScriptsCronManager
 from python_scs.streamlit import PannelConfig, StreamlitPannel
@@ -94,7 +97,7 @@ streamlit_pannel = StreamlitPannel(scripts_manager, config=PannelConfig(
 ))
 ```
 
-4. Execute o painel:
+3. Execute o painel utilizando o `streamlit`:
 
 ```bash
 streamlit run streamlit_pannel.py
