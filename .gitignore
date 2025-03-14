@@ -1,3 +1,4 @@
 scripts/logs
 .venv
-run
+run.sh
+__pycache__/
