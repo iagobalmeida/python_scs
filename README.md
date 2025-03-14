@@ -152,5 +152,5 @@ scripts_manager.remove_job(job)
 
 ## 📜 Licença
 
-Este projeto é distribuído sob a licença MIT. Consulte o arquivo `LICENSE` para mais detalhes.
+Este projeto é distribuído sob a licença MIT. Consulte o arquivo [LICENSE](./LICENSE) para mais detalhes.
 
