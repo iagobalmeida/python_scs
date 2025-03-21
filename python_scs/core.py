@@ -1,8 +1,7 @@
 import os
 import subprocess
-from dataclasses import dataclass
 from logging import INFO, getLogger
-from typing import List
+from typing import List, Union
 from uuid import uuid4
 
 from crontab import CronTab
@@ -11,53 +10,98 @@ from .schemas import PythonCronItem
 
 
 class PythonScriptsCronManager:
-    '''Módulo para gestão da execução de scripts em Python via cron'''
+    '''PythonScriptsCronManager object allows managing the execution of CRON Jobs, abstracting output configuration and python scripts execution.'''
 
-    @dataclass
-    class Config:
-        app_path: str = os.path.abspath('.')
-        scripts_folder: str = 'scripts'
-        logs_folder: str = 'scripts/logs'
+    def __init__(self, app_path: str = None, scripts_folder: str = None, logs_folder: str = None, crontab_tabfile: str = None, crontab_log: str = None, user=None, log_level: int = INFO) -> None:
+        if not app_path:  # pragma: nocover
+            app_path = os.path.abspath('.')
 
-    def __init__(self, config: Config = Config(), user=None, log_level: int = INFO) -> None:
-        self.crontab = CronTab(user=user)
-        self.app_path = config.app_path
-        self.scripts_folder = config.scripts_folder
-        self.logs_folder = config.logs_folder
+        if not scripts_folder:
+            scripts_folder = '/scripts'
+
+        if not logs_folder:
+            logs_folder = '/scripts/logs'
+
+        if crontab_tabfile:
+            crontab_tabfile = f'{app_path}{crontab_tabfile}'
+        else:  # pragma: nocover
+            crontab_tabfile = f'{app_path}/crontab_file'
+
+        self.app_path = app_path
+        self.scripts_folder = scripts_folder
+        self.logs_folder = logs_folder
+        self.crontab_tabfile = crontab_tabfile
+
+        self.__check_folders()
+
         self.log = getLogger(__name__)
         self.log.setLevel(log_level)
 
-    def get_jobs(self) -> List[PythonCronItem]:
-        '''Retorna todos os agendamentos configurados'''
-        self.crontab.read()
-        return [PythonCronItem(job) for job in self.crontab]
+        self.crontab = CronTab(
+            user=user,
+            tabfile=crontab_tabfile,
+            log=crontab_log
+        )
 
-    def get_job(self, filters: dict) -> PythonCronItem:
-        '''Retorna o primeiro agendamento encontrado que bate com os filtros'''
+    def __check_folders(self):
+        os.makedirs(f'{self.app_path}/{self.scripts_folder}', exist_ok=True)
+        os.makedirs(f'{self.app_path}/{self.logs_folder}', exist_ok=True)
+
+    def clear_jobs(self) -> List[PythonCronItem]:
+        '''Removes all the jobs'''
+        self.crontab.remove_all()
+        self.crontab.write(self.crontab_tabfile)
+
+    def get_jobs(self) -> List[PythonCronItem]:
+        '''Returns all the `PythonCronItem`'s configured in the CRON file.'''
+        self.crontab.read(self.crontab_tabfile)
+        return [
+            PythonCronItem(
+                command=job.command,
+                comment=job.comment,
+                user=job.user,
+                pre_comment=job.pre_comment
+            )
+            for job in self.crontab
+        ]
+
+    def get_job(self, script_name: str = None, comment: str = None, command: str = None, marker: str = None) -> Union[PythonCronItem, None]:
+        '''Returns a specific job configured in the CRON file according to the `filters` criteria.'''
         for job in self.get_jobs():
-            if all([
-                getattr(job, key) == value
-                for key, value in filters.items()
-            ]):
-                return job
-        raise ValueError(f"No job found with filters: {filters}")
+            if script_name and not script_name in job.script_name:
+                continue
+            if command and not job.command == command:
+                continue
+            if comment and not job.comment == comment:
+                continue
+            if marker and not job.marker == marker:
+                continue
+            return job
+        return None
 
     def set_job(self, command: str, schedule: List[str], log_file_name: str = None, comment: str = None, enable: bool = True) -> PythonCronItem:
-        '''Cria um novo agendamento'''
+        '''Creates and insert into the CRON file a new `PythonCronItem` that executes a command.'''
         if log_file_name:
             log_file_path = f'{self.logs_folder}/{log_file_name}'
-            command = f'{command} >> {log_file_path} 2>> {log_file_path}'
-        cron_item = self.crontab.new(command=command)
-        job = PythonCronItem(cron_item)
+            command = f'{command} &>> {log_file_path}'
+        cron_job = self.crontab.new(
+            command=command,
+            comment=comment,
+            user=self.crontab.user
+        )
+        job = PythonCronItem(cron_job.command, cron_job.comment, cron_job.user, cron_job.pre_comment)
+        job.cron = cron_job.cron
         if comment:
             job.set_comment(comment)
         job.setall(' '.join(schedule))
         job.enable(enabled=enable)
-        self.crontab.write()
+        self.crontab.write(self.crontab_tabfile)
         return job
 
     def set_script_job(self, script_name: str, schedule: List[str], log_file_name: str = None, comment: str = None, enable: bool = True) -> PythonCronItem:
-        '''Cria um novo agendamento'''
+        '''Creates and insert into the CRON a new `PythonCronItem` that executes a python script. Raises `ValueError` if script is not found.'''
+        if not script_name in self.get_scripts():
+            raise ValueError(f'{script_name} not found.')
         return self.set_job(
             command=f'cd {self.app_path} && python3 -m {self.scripts_folder}.{script_name}',
             schedule=schedule,
@@ -67,47 +111,58 @@ class PythonScriptsCronManager:
         )
 
     def get_scripts(self) -> List[str]:
-        '''Retorna todos os scripts disponíveis na pasta de scripts'''
+        '''Returns the `.py` scripts in the `scripts_folder`.'''
         return [file for file in os.listdir(f'{self.app_path}/{self.scripts_folder}') if file.endswith('.py') and file != '__init__.py']
 
     def upload_script(self, file_name: str, file_bytes: bytes):
+        '''Creates a new `.py` script in the `scripts_folder`.'''
         if not '.py' in file_name:
             file_name = f"{file_name}.py"
         file_path = f"{self.app_path}/{self.scripts_folder}/{file_name}"
         with open(file_path, 'wb') as file:
             file.write(file_bytes)
 
-    def toggle_job(self, job: PythonCronItem):
-        '''Habilita/desabilita um agendamento'''
-        job.enable(not job.enabled)
-        self.crontab.write()
+    def enable_job(self, job: PythonCronItem):
+        '''Enable a `PythonCronItem` configured in the CRON file.'''
+        job.enable(True)
+        self.crontab.write(self.crontab_tabfile)
         return job.enabled
 
-    def execute_job(self, job: PythonCronItem, use_subprocess: bool = False) -> str:
-        '''Executa um agendamento imediatamente'''
+    def disable_job(self, job: PythonCronItem):
+        '''Disable a `PythonCronItem` configured in the CRON file.'''
+        job.enable(False)
+        self.crontab.write(self.crontab_tabfile)
+        return job.enabled
+
+    def toggle_job(self, job: PythonCronItem):
+        '''Enable/Disable a `PythonCronItem` configured in the CRON file.'''
+        return self.disable_job(job) if job.enabled else self.enable_job(job)
+
+    def execute_job(self, job: PythonCronItem, use_subprocess: bool = False) -> subprocess.Popen:  # pragma: nocover
+        '''Execute a `PythonCronItem`. If `use_subprocess=True` will create and return a `subprocess.Popen`, else will return the Job output.'''
         if use_subprocess:
-            subprocess.Popen(job.command, shell=True)
-            return 'ok'
+            return subprocess.Popen(job.command, shell=True)
         return job.run()
 
     def remove_job(self, job: PythonCronItem) -> None:
-        '''Remove um agendamento'''
-        self.crontab.remove(job._cron_item)
-        self.crontab.write()
+        '''Removes a `PythonCronItem` from the CRON file.'''
+        self.crontab.remove(job)
+        self.crontab.write(self.crontab_tabfile)
 
     def get_job_log_file_path(self, job: PythonCronItem):
-        if not '>>' in job.command:
+        '''Returns the path to `PythonCronItem` the log file.'''
+        if not '&>>' in job.command:
             return None
-        return f'{self.app_path}/{job.command.split(">>")[-1].strip()}'
+        return f'{self.app_path}/{job.command.split("&>>")[-1].strip()}'
 
     def get_job_logs(self, job: PythonCronItem, lines: int = 20) -> List[str]:
-        '''Retorna as últimas `lines` linhas do log de um agendamento'''
+        '''Returns the last `lines` lines of the `PythonCronItem`.'''
         log_file_path = self.get_job_log_file_path(job)
         if not log_file_path:
             return []
 
         directory = os.path.dirname(log_file_path)
-        if not os.path.isdir(directory):
+        if not os.path.isdir(directory):  # pragma: no cover
             raise FileNotFoundError(f'Diretório de logs "{directory}" não encontrado')
         try:
             with open(log_file_path, 'r+') as log_file:

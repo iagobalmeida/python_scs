@@ -5,29 +5,24 @@ import psutil
 from crontab import CronItem
 
 
-class PythonCronItem:
-    def __init__(self, cron_item: CronItem):
-        self._cron_item = cron_item
-
-    def __getattr__(self, name):
-        if name not in {'script_name', 'is_running'}:
-            return getattr(self._cron_item, name)
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-
+class PythonCronItem(CronItem):
     @property
     def script_name(self):
-        match = re.search(r'\.([a-zA-Z_][a-zA-Z0-9_]*)\s*>>', self.command)
-        return match.group(1) if match else None
+        if '.py' in self.command:
+            match = re.search(r'python3\s+-m\s+[^/]*\/([^ ]+)', self.command)
+            return match.group(1) if match else None
+        return None
 
-    def is_running(self):
-        for proc in psutil.process_iter(attrs=['cmdline']):
-            try:
+    def is_running(self) -> bool:
+        running = False
+        try:
+            for proc in psutil.process_iter(attrs=['cmdline']):
                 cmdline = " ".join(proc.info['cmdline']) if proc.info['cmdline'] else ""
-                if self.command in cmdline:
-                    return True
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                pass
-        return False
+                running = self.command in cmdline
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):  # pragma: no cover
+            pass
+        finally:
+            return running
 
 
 @dataclass

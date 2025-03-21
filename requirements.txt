@@ -1,3 +1,5 @@
 python-crontab
 psutil
 streamlit
+pytest
+coverage

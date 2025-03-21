@@ -2,3 +2,7 @@ scripts/logs
 .venv
 run.sh
 __pycache__/
+scripts
+test_cronfile
+.coverage
+htmlcov
