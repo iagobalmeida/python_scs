@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: python-scs
-Version: 1.1
+Version: 1.2
 Summary: Agendador de Scripts Python usando Crontab com Painel Streamlit
 Author-email: Iago Almeida <seuemail@example.com>
 License: MIT License
@@ -38,36 +38,41 @@ Requires-Dist: streamlit; extra == "streamlit"
 
 # Python Scripts Cron Scheduler
 
-**Abstração com Painel em Streamlit para gestão do agendamento de scripts Python através de CronJobs.**
+**Abstraction for managing the scheduling of Python scripts through CronJobs with a out-of-the-box Streamlit Panel.**
 
-![Demo](./demo.png)
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![Linux](https://img.shields.io/badge/Linux-222222.svg?style=for-the-badge&logo=linux&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-%23FE4B4B.svg?style=for-the-badge&logo=streamlit&logoColor=white)
 
-## 📌 Instalação
+[![Tests Status](./reports/tests-badge.svg?dummy=8484744)](./reports/junit/report.html)
+[![Coverage Status](./reports/coverage-badge.svg?dummy=8484744)](./reports/htmlcov/report.html)
+
+## 📌 Installation
 
 ```bash
 pip install python_scs
 ```
 
-Caso vá utilizar o painel em Streamlit
+If you want to use the Streamlit panel:
 ```bash
 pip install python_scs[streamlit]
 ```
 
-## 🚀 Configuração
+## 🚀 Configuration
 
-Confira o [exemplo completo](https://github.com/iagobalmeida/python_scs/tree/master/examples).
+Check out the [full example](https://github.com/iagobalmeida/python_scs/tree/master/examples).
 
-1. Certifique-se de ter a seguinte estrutura de diretórios:
+1. Make sure you have the following directory structure:
 
 ```
 ├── scripts/
 │   ├── logs/
-│   ├── script_teste.py
+│   ├── script_test.py
 │   ├── __init__.py
 ├── streamlit_pannel.py
 ```
 
-2. Instancie o gerenciador de scripts e configure o painel:
+2. Instantiate the script manager and configure the panel:
 
 ```python
 # streamlit_pannel.py
@@ -85,15 +90,15 @@ streamlit_pannel = streamlit_ui.init(
 )
 ```
 
-3. Execute o painel utilizando o `streamlit`:
+3. Run the panel using `streamlit`:
 
 ```bash
 streamlit run streamlit_pannel.py
 ```
 
-## 🛠 Uso da API
+## 🛠 Using the API
 
-### Instanciando o gerenciador de scripts
+### Instantiating the script manager
 
 ```python
 import os
@@ -101,85 +106,85 @@ from python_scs import PythonScriptsCronManager
 
 scripts_manager = PythonScriptsCronManager(
     config=PythonScriptsCronManager.Config(
-        app_path=os.path.abspath("."),  # Raiz onde scripts_folder estará
-        scripts_folder="scripts",       # Diretório com os códigos
-        logs_folder="scripts/logs"      # Diretório de logs
+        app_path=os.path.abspath("."),  # Root directory where scripts_folder is located
+        scripts_folder="scripts",       # Directory containing scripts
+        logs_folder="scripts/logs"      # Directory for logs
     ),
     user=True
 )
 ```
 
-📌 *Veja a [documentação do python-crontab](https://pypi.org/project/python-crontab/#how-to-use-the-module) para entender o parâmetro `user`.*
+📌 *Check the [python-crontab documentation](https://pypi.org/project/python-crontab/#how-to-use-the-module) to understand the `user` parameter.*
 
-### Listando os scripts disponíveis
+### Listing available scripts
 
 ```python
 scripts = scripts_manager.get_scripts()
-print(scripts)  # ["script_teste.py"]
+print(scripts)  # ["script_test.py"]
 ```
 
-### Criando um agendamento
+### Creating a schedule
 
 ```python
 job = scripts_manager.set_script_job(
-    script_name="script_teste.py",
+    script_name="script_test.py",
     schedule=["* * * * *"],
-    comment="Agendamento teste",
+    comment="Test schedule",
     enable=True
 )
 
-# Criando um agendamento com comando customizado
+# Creating a schedule with a custom UNIX command
 job = scripts_manager.set_job(
     command='echo "Teste"',
     schedule=["* * * * *"],
-    log_file_name="teste.txt",  # Necessário para armazenar a saída
-    comment="Agendamento customizado",
+    log_file_name="test.txt",  # Required to store output
+    comment="Custom schedule",
     enable=True
 )
 ```
 
-📌 Para verificar se o agendamento foi criado, execute:
+📌 To verify if the schedule was created, run:
 ```bash
 crontab -l
 ```
 
-### Listando os agendamentos configurados
+### Listing configured schedules
 
 ```python
 jobs = scripts_manager.get_jobs()
 for job in jobs:
     print(f"{job.comment} - {job.script_name} - {job.is_runing()}")
 
-# Busca um agendamento por filtros
+# Fetching a scheduled job by filters
 job_script_test = scripts_manager.get_job({
-    "script_name": "script_teste.py",
-    "comment": "Agendamento teste"
+    "script_name": "script_test.py",
+    "comment": "Test schedule"
 })
 ```
 
-### Habilitando, desabilitando, executando e removendo um agendamento
+### Enabling, disabling, executing, and removing a scheduled job
 
 ```python
 job = scripts_manager.get_job({
-    "script_name": "script_teste.py",
-    "comment": "Agendamento teste"
+    "script_name": "script_test.py",
+    "comment": "Test schedule"
 })
 
-job.enable_job()     # Habilita o job
-job.disable_job()    # Desabilita o job
-job.toggle_job()     # Alterna entre ativado/desativado
+job.enable_job()     # Enables the job
+job.disable_job()    # Disables the job
+job.toggle_job()     # Toggles between enabled/disabled
 
-# Executa o script manualmente
+# Manually execute the script
 scripts_manager.execute(job)
 
-# Executa como subprocesso
+# Execute as a subprocess
 scripts_manager.execute(job, use_subprocess=True)
 
-# Remove o agendamento
+# Remove the schedule
 scripts_manager.remove_job(job)
 ```
 
-## 📜 Licença
+## 📜 License
 
-Este projeto é distribuído sob a licença MIT. Consulte o arquivo [LICENSE](./LICENSE) para mais detalhes.
+This project is distributed under the MIT license. See the [LICENSE](./LICENSE) file for more details.
 
