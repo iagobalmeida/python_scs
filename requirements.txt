@@ -2,4 +2,6 @@ python-crontab
 psutil
 streamlit
 pytest
+pytest-html
 coverage
+genbadge[all]
