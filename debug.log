@@ -1,0 +1,10 @@
+============================= test session starts ==============================
+platform linux -- Python 3.8.10, pytest-8.3.5, pluggy-1.5.0 -- /home/visie/hobbies/python_scs/.venv/bin/python3
+using: pytest-8.3.5
+rootdir: /home/visie/hobbies/python_scs
+configfile: pyproject.toml
+collected 3 items / 3 deselected / 0 selected
+
+============================ 3 deselected in 0.35s =============================
+writing pytest debug information to trace,sys,misc
+wrote pytest debug information to trace,sys,misc
