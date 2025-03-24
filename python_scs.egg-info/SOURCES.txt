@@ -7,6 +7,8 @@ python_scs/__init__.py
 python_scs/core.py
 python_scs/schemas.py
 python_scs/streamlit_ui.py
+python_scs/test_core.py
+python_scs/test_streamlit_ui.py
 python_scs.egg-info/PKG-INFO
 python_scs.egg-info/SOURCES.txt
 python_scs.egg-info/dependency_links.txt
