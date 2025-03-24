@@ -24,8 +24,6 @@ class PythonScriptsCronManager:
 
         if crontab_tabfile:
             crontab_tabfile = f'{app_path}{crontab_tabfile}'
-        else:  # pragma: nocover
-            crontab_tabfile = f'{app_path}/crontab_file'
 
         self.app_path = app_path
         self.scripts_folder = scripts_folder
