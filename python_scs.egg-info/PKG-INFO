@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: python-scs
-Version: 1.0
+Version: 1.1
 Summary: Agendador de Scripts Python usando Crontab com Painel Streamlit
 Author-email: Iago Almeida <seuemail@example.com>
 License: MIT License
